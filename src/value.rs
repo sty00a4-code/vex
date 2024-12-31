@@ -1,5 +1,11 @@
 use crate::{code::Code, vm::Vm};
-use std::{cell::RefCell, collections::HashMap, error::Error, fmt::Debug, rc::Rc};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    error::Error,
+    fmt::{Debug, Display},
+    rc::Rc,
+};
 
 pub type Pointer<T> = Rc<RefCell<T>>;
 #[derive(Clone, Default)]
@@ -19,7 +25,6 @@ pub enum Value {
     Class(Pointer<Class>),
     Object(Pointer<Object>),
     Iter(Pointer<dyn Iterator<Item = Value>>),
-    Box(Pointer<Self>),
 }
 #[derive(Clone)]
 pub enum FnKind {
@@ -77,7 +82,64 @@ impl Debug for Value {
                 Rc::as_ptr(ptr)
             ),
             Value::Iter(ptr) => write!(f, "iter:{:08x?}", Rc::as_ptr(ptr)),
-            Value::Box(ptr) => write!(f, "box({:?})", ptr.borrow()),
+        }
+    }
+}
+impl Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Char(v) => write!(f, "{v}"),
+            Self::Str(v) => write!(f, "{v}"),
+            _ => Debug::fmt(self, f),
+        }
+    }
+}
+impl PartialEq for Value {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Nil, Self::Nil) => true,
+            (Self::Int(left), Self::Int(right)) => left == right,
+            (Self::Float(left), Self::Float(right)) => left == right,
+            (Self::Bool(left), Self::Bool(right)) => left == right,
+            (Self::Char(left), Self::Char(right)) => left == right,
+            (Self::Str(left), Self::Str(right)) => left == right,
+            (Self::Fn(FnKind::Fn(left)), Self::Fn(FnKind::Fn(right))) => {
+                std::ptr::addr_eq(Rc::as_ptr(left), Rc::as_ptr(right))
+            }
+            (Self::Fn(FnKind::NativeFn(left)), Self::Fn(FnKind::NativeFn(right))) => {
+                std::ptr::addr_eq(left as *const NativeFn, right as *const NativeFn)
+            }
+            (Self::Coroutine(left), Self::Coroutine(right)) => {
+                std::ptr::addr_eq(Rc::as_ptr(left), Rc::as_ptr(right))
+            }
+            (Self::Tuple(left), Self::Tuple(right)) => left
+                .borrow()
+                .iter()
+                .zip(right.borrow().iter())
+                .all(|(left, right)| left == right),
+            (Self::Vec(left), Self::Vec(right)) => left
+                .borrow()
+                .iter()
+                .zip(right.borrow().iter())
+                .all(|(left, right)| left == right),
+            (Self::Map(left), Self::Map(right)) => {
+                for (key, left) in left.borrow().iter() {
+                    if left != right.borrow().get(key).unwrap_or(&Value::default()) {
+                        return false;
+                    }
+                }
+                true
+            }
+            (Self::Class(left), Self::Class(right)) => {
+                std::ptr::addr_eq(Rc::as_ptr(left), Rc::as_ptr(right))
+            }
+            (Self::Object(left), Self::Object(right)) => {
+                std::ptr::addr_eq(Rc::as_ptr(left), Rc::as_ptr(right))
+            }
+            (Self::Iter(left), Self::Iter(right)) => {
+                std::ptr::addr_eq(Rc::as_ptr(left), Rc::as_ptr(right))
+            }
+            _ => false,
         }
     }
 }

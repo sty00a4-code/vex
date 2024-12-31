@@ -110,4 +110,5 @@ pub struct Code {
     pub bytecodes: Vec<ByteCode>,
     pub strings: Vec<String>,
     pub refs: Vec<Rc<Self>>,
+    pub registers: Register,
 }
