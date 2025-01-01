@@ -43,6 +43,43 @@ pub struct Object {
     pub values: Pointer<[Value]>,
 }
 
+impl Class {
+    pub fn typ(&self) -> String {
+        format!("class<{}>", self.name)
+    }
+}
+impl Object {
+    pub fn typ(&self) -> String {
+        self.class.borrow().name.clone()
+    }
+}
+impl Value {
+    pub fn base_type(&self) -> &'static str {
+        match self {
+            Value::Nil => "nil",
+            Value::Int(_) => "int",
+            Value::Float(_) => "float",
+            Value::Bool(_) => "bool",
+            Value::Char(_) => "char",
+            Value::Str(_) => "str",
+            Value::Fn(_) => "fn",
+            Value::Coroutine(_) => "coro",
+            Value::Tuple(_) => "tuple",
+            Value::Vec(_) => "vec",
+            Value::Map(_) => "map",
+            Value::Class(_) => "class",
+            Value::Object(_) => "object",
+            Value::Iter(_) => "iter",
+        }
+    }
+    pub fn typ(&self) -> String {
+        match self {
+            Value::Class(ref_cell) => format!("class<{}>", ref_cell.borrow().name),
+            Value::Object(ref_cell) => ref_cell.borrow().class.borrow().name.clone(),
+            _ => self.base_type().to_string()
+        }
+    }
+}
 impl Debug for Value {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

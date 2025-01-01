@@ -18,8 +18,9 @@ pub struct Call {
 }
 
 impl Vm {
-    pub fn init() -> Self {
+    pub fn init(globals: HashMap<String, Pointer<Value>>) -> Self {
         Self {
+            globlas: Rc::new(RefCell::new(globals)),
             ..Default::default()
         }
     }
